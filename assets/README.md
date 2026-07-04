@@ -35,7 +35,14 @@ Starter SVG assets for a faceless history explainer style: white background, bla
 
 ## SVG Factory
 
-Use the local generator when adding repeatable catalogue assets:
+Use the local generator directly when an agent needs to render a one-off SVG:
+
+```bash
+svg-factory render icon.json --out icon.svg
+npm run svg:render -- icon.json --out icon.svg
+```
+
+Use the preset workflow when adding repeatable catalogue assets:
 
 ```bash
 npm run asset:list

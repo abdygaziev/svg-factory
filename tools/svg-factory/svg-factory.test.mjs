@@ -12,6 +12,8 @@ import { loadSheet, listSheets } from "./sheets.mjs";
 import { styleContract } from "./style.mjs";
 import { validateSheet } from "./validate.mjs";
 import { buildPreviewCommand, previewSheet, selectPreviewRenderer } from "./preview.mjs";
+import { renderDefinitionFile, renderSvgDocument } from "./document.mjs";
+import { validateSvgDocument } from "./document-validate.mjs";
 
 test("loads the Byzantium pilot sheet", () => {
   const sheet = loadSheet("byzantium-pilot");
@@ -63,6 +65,95 @@ test("CLI generate writes the pilot sheet with structural markers", () => {
   assert.match(svg, /<title>White Board History - Byzantium Pilot Assets<\/title>/);
   assert.match(svg, /viewBox="0 0 1600 900"/);
   assert.match(svg, /<g id="constantinople-wall-piece"/);
+});
+
+test("package exposes a standalone svg-factory binary and render script", () => {
+  const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+
+  assert.equal(packageJson.bin["svg-factory"], "tools/svg-factory/cli.mjs");
+  assert.equal(packageJson.scripts["svg:render"], "node tools/svg-factory/cli.mjs render");
+});
+
+test("renders a generic SVG document definition without custom primitive code", () => {
+  const svg = renderSvgDocument(makeDocument());
+
+  assert.match(svg, /<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" width="320" height="180" viewBox="0 0 320 180">/);
+  assert.match(svg, /<title>Agent Demo<\/title>/);
+  assert.match(svg, /<g id="badge">/);
+  assert.match(svg, /<rect id="badge-card" x="16" y="16" width="96" height="64" rx="8" fill="#ffffff" stroke="#111111" stroke-width="3"\/>/);
+  assert.match(svg, /<text id="badge-label" x="160" y="120" fill="#111111" font-size="20" font-family="Arial,sans-serif" text-anchor="middle">Safe &amp; editable<\/text>/);
+});
+
+test("CLI render writes a generic SVG definition to the requested output path", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "svg-factory-render-"));
+  try {
+    const input = join(tempDir, "agent-demo.json");
+    const output = join(tempDir, "agent-demo.svg");
+    writeFileSync(input, JSON.stringify(makeDocument(), null, 2));
+
+    execFileSync("node", ["tools/svg-factory/cli.mjs", "render", input, "--out", output], {
+      cwd: root,
+      stdio: "pipe"
+    });
+
+    const svg = readFileSync(output, "utf8");
+    assert.match(svg, /<title>Agent Demo<\/title>/);
+    assert.match(svg, /<circle id="badge-dot" cx="220" cy="52" r="28" fill="#7c3aed"\/>/);
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("standalone render accepts existing sheet definitions too", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "svg-factory-render-sheet-"));
+  try {
+    const output = join(tempDir, "byzantium-pilot.svg");
+
+    renderDefinitionFile(join(root, "tools/svg-factory/sheets/byzantium-pilot.json"), { outputPath: output });
+
+    const svg = readFileSync(output, "utf8");
+    assert.match(svg, /<title>White Board History - Byzantium Pilot Assets<\/title>/);
+    assert.match(svg, /<g id="constantinople-wall-piece"/);
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("generic SVG definitions validate creator-facing errors before rendering", () => {
+  assert.throws(() => validateSvgDocument(null), /SVG document must be an object/);
+  assert.throws(
+    () =>
+      validateSvgDocument({
+        name: "bad-doc",
+        title: "Bad Doc",
+        width: 320,
+        height: 180,
+        elements: [{ id: "missing-kind", x: 10 }]
+      }),
+    /Element "missing-kind" missing required key "kind"/
+  );
+  assert.throws(
+    () =>
+      validateSvgDocument({
+        name: "bad-doc",
+        title: "Bad Doc",
+        width: 320,
+        height: 180,
+        elements: [{ id: "bad-kind", kind: "script" }]
+      }),
+    /Element "bad-kind" uses unsupported kind "script"/
+  );
+  assert.throws(
+    () =>
+      renderSvgDocument({
+        name: "bad-color",
+        title: "Bad Color",
+        width: 320,
+        height: 180,
+        elements: [{ id: "unsafe-color", kind: "circle", cx: 20, cy: 20, r: 10, fill: "url(javascript:alert(1))" }]
+      }),
+    /Element "unsafe-color" has invalid fill/
+  );
 });
 
 test("every style accent validates and renders to its configured color", () => {
@@ -265,6 +356,55 @@ function makeSheet(item = {}) {
     width: 1600,
     height: 900,
     items: [makeItem(item)]
+  };
+}
+
+function makeDocument() {
+  return {
+    name: "agent-demo",
+    title: "Agent Demo",
+    width: 320,
+    height: 180,
+    background: "#ffffff",
+    elements: [
+      {
+        id: "badge",
+        kind: "group",
+        children: [
+          {
+            id: "badge-card",
+            kind: "rect",
+            x: 16,
+            y: 16,
+            width: 96,
+            height: 64,
+            rx: 8,
+            fill: "#ffffff",
+            stroke: "#111111",
+            strokeWidth: 3
+          },
+          {
+            id: "badge-dot",
+            kind: "circle",
+            cx: 220,
+            cy: 52,
+            r: 28,
+            fill: "#7c3aed"
+          },
+          {
+            id: "badge-label",
+            kind: "text",
+            x: 160,
+            y: 120,
+            text: "Safe & editable",
+            fill: "#111111",
+            fontSize: 20,
+            fontFamily: "Arial,sans-serif",
+            textAnchor: "middle"
+          }
+        ]
+      }
+    ]
   };
 }
 

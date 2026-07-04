@@ -1,10 +1,13 @@
 {
-  "name": "white-board-history-assets",
+  "name": "svg-factory-tool",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
+  "bin": {
+    "svg-factory": "tools/svg-factory/cli.mjs"
+  },
   "scripts": {
     "test": "node --test tools/svg-factory/*.test.mjs",
+    "svg:render": "node tools/svg-factory/cli.mjs render",
     "asset:list": "node tools/svg-factory/cli.mjs list",
     "asset:generate": "node tools/svg-factory/cli.mjs generate",
     "asset:preview": "node tools/svg-factory/cli.mjs preview",
