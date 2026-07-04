@@ -1,0 +1,77 @@
+{
+  "name": "byzantium-pilot",
+  "title": "White Board History - Byzantium Pilot Assets",
+  "width": 1600,
+  "height": 900,
+  "items": [
+    {
+      "id": "constantinople-wall-piece",
+      "type": "wall",
+      "x": 235,
+      "y": 155,
+      "label": "Constantinople Wall",
+      "accent": "byzantium"
+    },
+    {
+      "id": "bosporus-channel",
+      "type": "bosporus",
+      "x": 650,
+      "y": 155,
+      "label": "Bosporus",
+      "accent": "france"
+    },
+    {
+      "id": "ottoman-cannon-battery",
+      "type": "cannonBattery",
+      "x": 1060,
+      "y": 155,
+      "label": "Cannon Battery",
+      "accent": "ottomans"
+    },
+    {
+      "id": "venetian-relief-ships",
+      "type": "reliefShips",
+      "x": 1400,
+      "y": 155,
+      "label": "Relief Ships",
+      "accent": "venice",
+      "cardWidth": 270
+    },
+    {
+      "id": "byzantine-treasury-meter",
+      "type": "meter",
+      "x": 265,
+      "y": 470,
+      "label": "Treasury Meter",
+      "accent": "byzantium",
+      "lowLabel": "EMPTY",
+      "highLabel": "FULL",
+      "value": 0.3
+    },
+    {
+      "id": "manpower-meter",
+      "type": "manpower",
+      "x": 715,
+      "y": 470,
+      "label": "Manpower Meter"
+    },
+    {
+      "id": "eastern-mediterranean-map",
+      "type": "medMap",
+      "x": 1235,
+      "y": 475,
+      "label": "Eastern Mediterranean Map",
+      "cardWidth": 520,
+      "cardHeight": 310
+    },
+    {
+      "id": "verdict-impossible-card",
+      "type": "verdict",
+      "x": 800,
+      "y": 765,
+      "label": "Verdict: Possible, But Too Late",
+      "cardWidth": 640,
+      "cardHeight": 150
+    }
+  ]
+}
