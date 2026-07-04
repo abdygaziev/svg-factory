@@ -1,16 +1,24 @@
 {
   "name": "svg-factory-tool",
   "version": "0.1.0",
+  "description": "No-dependency SVG generation CLI with an installable AI-agent skill.",
   "type": "module",
   "bin": {
     "svg-factory": "tools/svg-factory/cli.mjs"
   },
+  "files": [
+    "README.md",
+    "assets/README.md",
+    "skills/svg-factory",
+    "tools/svg-factory"
+  ],
   "scripts": {
     "test": "node --test tools/svg-factory/*.test.mjs",
     "svg:render": "node tools/svg-factory/cli.mjs render",
     "asset:list": "node tools/svg-factory/cli.mjs list",
     "asset:generate": "node tools/svg-factory/cli.mjs generate",
     "asset:preview": "node tools/svg-factory/cli.mjs preview",
-    "asset:all": "node tools/svg-factory/cli.mjs generate && node tools/svg-factory/cli.mjs preview"
+    "asset:all": "node tools/svg-factory/cli.mjs generate && node tools/svg-factory/cli.mjs preview",
+    "skill:install": "mkdir -p \"${CODEX_HOME:-$HOME/.codex}/skills\" && rm -rf \"${CODEX_HOME:-$HOME/.codex}/skills/svg-factory\" && cp -R skills/svg-factory \"${CODEX_HOME:-$HOME/.codex}/skills/svg-factory\""
   }
 }
