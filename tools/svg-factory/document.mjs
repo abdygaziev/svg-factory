@@ -5,6 +5,7 @@ import { escapeXml } from "./renderers.mjs";
 import { renderSheet } from "./render.mjs";
 import { validateSheet } from "./validate.mjs";
 import { validateSvgDocument } from "./document-validate.mjs";
+import { geometryFieldsFor } from "./document-kinds.mjs";
 
 const defaultText = Object.freeze({
   fill: "#111111",
@@ -98,16 +99,6 @@ function formatElementAttributes(element) {
   });
 
   return formatAttributes(attrs);
-}
-
-function geometryFieldsFor(kind) {
-  if (kind === "rect") return ["x", "y", "width", "height", "rx", "ry"];
-  if (kind === "circle") return ["cx", "cy", "r"];
-  if (kind === "ellipse") return ["cx", "cy", "rx", "ry"];
-  if (kind === "line") return ["x1", "y1", "x2", "y2"];
-  if (kind === "path") return ["d"];
-  if (kind === "polygon" || kind === "polyline") return ["points"];
-  return [];
 }
 
 function formatAttributes(attributes) {

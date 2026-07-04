@@ -154,6 +154,153 @@ test("generic SVG definitions validate creator-facing errors before rendering", 
       }),
     /Element "unsafe-color" has invalid fill/
   );
+  assert.throws(
+    () =>
+      validateSvgDocument({
+        name: "bad-doc",
+        title: "Bad Doc",
+        width: 320,
+        height: 180,
+        elements: [
+          {
+            id: "duplicate",
+            kind: "group",
+            children: [{ id: "duplicate", kind: "circle", cx: 20, cy: 20, r: 10 }]
+          }
+        ]
+      }),
+    /Duplicate element id: duplicate/
+  );
+  assert.throws(
+    () =>
+      validateSvgDocument({
+        name: "bad-doc",
+        title: "Bad Doc",
+        width: 320,
+        height: 180,
+        elements: [{ id: "bad-group", kind: "group", children: {} }]
+      }),
+    /Element "bad-group" has invalid children/
+  );
+  assert.throws(
+    () =>
+      validateSvgDocument({
+        name: "bad-doc",
+        title: "Bad Doc",
+        width: 320,
+        height: 180,
+        elements: [{ id: "bad-radius", kind: "circle", cx: 20, cy: 20, r: -1 }]
+      }),
+    /Element "bad-radius" has invalid r: expected a non-negative number/
+  );
+  assert.throws(
+    () =>
+      validateSvgDocument({
+        name: "bad-doc",
+        title: "Bad Doc",
+        width: 320,
+        height: 180,
+        elements: [{ id: "bad-width", kind: "rect", x: 0, y: 0, width: -1, height: 10 }]
+      }),
+    /Element "bad-width" has invalid width: expected a non-negative number/
+  );
+});
+
+test("generic SVG render supports all standalone shape kinds", () => {
+  const svg = renderSvgDocument({
+    name: "shape-demo",
+    title: "Shape Demo",
+    width: 320,
+    height: 180,
+    elements: [
+      { id: "ellipse-demo", kind: "ellipse", cx: 40, cy: 40, rx: 20, ry: 10, fill: "none", stroke: "#111111" },
+      { id: "line-demo", kind: "line", x1: 10, y1: 90, x2: 90, y2: 90, stroke: "#111111" },
+      { id: "path-demo", kind: "path", d: "M10 120 L90 120", stroke: "#111111", fill: "none" },
+      { id: "polygon-demo", kind: "polygon", points: "140,20 180,80 100,80", fill: "#7c3aed" },
+      { id: "polyline-demo", kind: "polyline", points: "200,20 240,60 280,20", fill: "none", stroke: "#111111" }
+    ]
+  });
+
+  assert.match(svg, /<ellipse id="ellipse-demo" cx="40" cy="40" rx="20" ry="10" fill="none" stroke="#111111"\/>/);
+  assert.match(svg, /<line id="line-demo" x1="10" y1="90" x2="90" y2="90" stroke="#111111"\/>/);
+  assert.match(svg, /<path id="path-demo" d="M10 120 L90 120" fill="none" stroke="#111111"\/>/);
+  assert.match(svg, /<polygon id="polygon-demo" points="140,20 180,80 100,80" fill="#7c3aed"\/>/);
+  assert.match(svg, /<polyline id="polyline-demo" points="200,20 240,60 280,20" fill="none" stroke="#111111"\/>/);
+});
+
+test("generic CLI render reports usage errors", () => {
+  assert.throws(
+    () => execFileSync("node", ["tools/svg-factory/cli.mjs", "render", "--out"], { cwd: root, stdio: "pipe" }),
+    /Usage: svg-factory render <definition\.json> --out <file\.svg>/
+  );
+  assert.throws(
+    () => execFileSync("node", ["tools/svg-factory/cli.mjs", "render", "icon.json"], { cwd: root, stdio: "pipe" }),
+    /Missing output path/
+  );
+});
+
+test("generic SVG rendering escapes text and attribute payloads", () => {
+  const svg = renderSvgDocument({
+    name: "escape-demo",
+    title: "Escape <Demo>",
+    width: 320,
+    height: 180,
+    background: "#ffffff",
+    elements: [
+      {
+        id: "safe-path",
+        kind: "path",
+        d: "M0 0 L10 10\" onload=\"alert(1)",
+        className: "x\" onclick=\"alert(1)",
+        transform: "translate(0 0)\" onload=\"alert(1)",
+        stroke: "#111111",
+        fill: "none"
+      },
+      {
+        id: "safe-text",
+        kind: "text",
+        x: 20,
+        y: 20,
+        text: "<script>alert(1)</script>",
+        fontFamily: "Arial,\" onload=\"alert(1)",
+        fill: "#111111"
+      }
+    ]
+  });
+
+  assert.match(svg, /<title>Escape &lt;Demo&gt;<\/title>/);
+  assert.match(svg, /d="M0 0 L10 10&quot; onload=&quot;alert\(1\)"/);
+  assert.match(svg, /class="x&quot; onclick=&quot;alert\(1\)"/);
+  assert.match(svg, /font-family="Arial,&quot; onload=&quot;alert\(1\)"/);
+  assert.match(svg, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+  assert.doesNotMatch(svg, /<script>/);
+  assert.doesNotMatch(svg, / onload="/);
+});
+
+test("generic SVG validation rejects unsafe paint values on background and stroke", () => {
+  assert.throws(
+    () =>
+      validateSvgDocument({
+        name: "bad-background",
+        title: "Bad Background",
+        width: 320,
+        height: 180,
+        background: "url(javascript:alert(1))",
+        elements: []
+      }),
+    /SVG document has invalid background/
+  );
+  assert.throws(
+    () =>
+      validateSvgDocument({
+        name: "bad-stroke",
+        title: "Bad Stroke",
+        width: 320,
+        height: 180,
+        elements: [{ id: "bad-stroke", kind: "line", x1: 0, y1: 0, x2: 10, y2: 10, stroke: "data:text/html,hi" }]
+      }),
+    /Element "bad-stroke" has invalid stroke/
+  );
 });
 
 test("every style accent validates and renders to its configured color", () => {

@@ -1,5 +1,6 @@
+import { descriptorForKind, supportedKinds } from "./document-kinds.mjs";
+
 const documentRequiredFields = ["name", "title", "width", "height", "elements"];
-const supportedKinds = Object.freeze(["circle", "ellipse", "group", "line", "path", "polygon", "polyline", "rect", "text"]);
 const paintPattern = /^(none|currentColor|#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|[A-Za-z][A-Za-z0-9-]*)$/;
 
 export function validateSvgDocument(document) {
@@ -69,38 +70,29 @@ function validateKindSpecificAttributes(element, { ids }) {
     return;
   }
 
-  if (element.kind === "rect") {
-    for (const field of ["x", "y", "width", "height"]) validateNumber(element[field], `Element "${element.id}"`, field);
-    validateOptionalNumber(element.rx, `Element "${element.id}"`, "rx");
-    validateOptionalNumber(element.ry, `Element "${element.id}"`, "ry");
+  const descriptor = descriptorForKind(element.kind);
+  const required = descriptor.required ?? descriptor.geometry ?? [];
+  for (const field of required) {
+    if (descriptor.strings?.includes(field)) {
+      validateString(element[field], `Element "${element.id}"`, field);
+    } else if (descriptor.nonNegative?.includes(field)) {
+      validateNonNegativeNumber(element[field], `Element "${element.id}"`, field);
+    } else {
+      validateNumber(element[field], `Element "${element.id}"`, field);
+    }
   }
-
-  if (element.kind === "circle") {
-    for (const field of ["cx", "cy", "r"]) validateNumber(element[field], `Element "${element.id}"`, field);
+  for (const field of descriptor.geometry ?? []) {
+    if (required.includes(field) || element[field] === undefined) continue;
+    if (descriptor.nonNegative?.includes(field)) {
+      validateNonNegativeNumber(element[field], `Element "${element.id}"`, field);
+    } else {
+      validateNumber(element[field], `Element "${element.id}"`, field);
+    }
   }
-
-  if (element.kind === "ellipse") {
-    for (const field of ["cx", "cy", "rx", "ry"]) validateNumber(element[field], `Element "${element.id}"`, field);
+  for (const field of descriptor.positive ?? []) {
+    validateOptionalPositiveNumber(element[field], `Element "${element.id}"`, field);
   }
-
-  if (element.kind === "line") {
-    for (const field of ["x1", "y1", "x2", "y2"]) validateNumber(element[field], `Element "${element.id}"`, field);
-  }
-
-  if (element.kind === "path") {
-    validateString(element.d, `Element "${element.id}"`, "d");
-  }
-
-  if (element.kind === "polygon" || element.kind === "polyline") {
-    validateString(element.points, `Element "${element.id}"`, "points");
-  }
-
-  if (element.kind === "text") {
-    for (const field of ["x", "y"]) validateNumber(element[field], `Element "${element.id}"`, field);
-    validateString(element.text, `Element "${element.id}"`, "text");
-    validateOptionalPositiveNumber(element.fontSize, `Element "${element.id}"`, "fontSize");
-    validateOptionalEnum(element.textAnchor, `Element "${element.id}"`, "textAnchor", ["start", "middle", "end"]);
-  }
+  validateOptionalEnum(element.textAnchor, `Element "${element.id}"`, "textAnchor", ["start", "middle", "end"]);
 }
 
 function validateCommonAttributes(element) {
@@ -144,6 +136,13 @@ function validatePositiveNumber(value, owner, field) {
   validateNumber(value, owner, field);
   if (value <= 0) {
     throw new Error(`${owner} has invalid ${field}: expected a positive number`);
+  }
+}
+
+function validateNonNegativeNumber(value, owner, field) {
+  validateNumber(value, owner, field);
+  if (value < 0) {
+    throw new Error(`${owner} has invalid ${field}: expected a non-negative number`);
   }
 }
 
