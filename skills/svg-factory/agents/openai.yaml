@@ -1,4 +1,4 @@
 interface:
   display_name: "SVG Factory"
-  short_description: "Generate validated editable SVG assets"
-  default_prompt: "Use $svg-factory to create an editable SVG asset from a JSON definition."
+  short_description: "Create polished, validated SVG assets"
+  default_prompt: "Use $svg-factory to create a polished SVG asset and preview it for visual QA."

@@ -1,17 +1,18 @@
 ---
 name: svg-factory
-description: Generate, validate, and preview deterministic editable SVG assets with the svg-factory CLI. Use when an agent needs to create plain SVG from JSON, render an existing SVG document definition, generate bundled sheet presets, or produce PNG previews from generated SVGs without hand-authoring final SVG markup.
+description: Generate, validate, and preview SVG assets, including polished original vector designs, editable JSON-driven SVGs, heraldic/ornamental emblems, icons, diagrams, badges, and bundled sheet presets. Use when Codex needs to create new SVG artwork, improve SVG design quality, synthesize a design from visual references without copying, render an SVG document definition, or produce PNG previews for QA.
 ---
 
 # SVG Factory
 
 ## When to Use
 
-Use `svg-factory` when the output should be a plain, editable, reproducible SVG rather than a raster image or a one-off hand-written SVG.
+Use `svg-factory` when the output should be an SVG rather than a raster image.
 
 Good fits:
 
-- Vector assets, icons, diagrams, badges, simple illustrations, and asset sheets.
+- Polished original vector designs, icons, diagrams, badges, simple illustrations, emblems, and asset sheets.
+- Heraldic, ornamental, historical, fantasy, game, and educational SVG assets.
 - SVGs that should remain hand-editable and deterministic from JSON source.
 - White Board History catalogue-card style sheets using bundled presets.
 - PNG previews of generated SVGs when local preview tools are available.
@@ -20,7 +21,7 @@ Poor fits:
 
 - Photorealistic, painterly, or texture-heavy bitmap art.
 - Interactive web UI or animation work.
-- Complex freehand vector illustration where JSON primitives would be slower than direct design tooling.
+- Exact copies of complex existing artwork unless the user has provided or identified a source SVG and asks to preserve it.
 
 ## Find the CLI
 
@@ -51,6 +52,41 @@ If only npm package access is available, use the published package:
 ```bash
 npx --yes svg-factory-tool render definition.json --out asset.svg
 ```
+
+## Polished Original Design Workflow
+
+Use this workflow when the user asks for a new polished design, a better-looking generated asset, an emblem, mascot, decorative illustration, historically inspired asset, or a design based on references without copying them.
+
+Read [references/polished-vector-design.md](references/polished-vector-design.md) before creating the asset.
+
+Core loop:
+
+1. Define the design brief in one sentence: subject, audience/use, style direction, output size, and constraints.
+2. Extract a motif inventory from references or the prompt: silhouette, pose, repeated shapes, line weight, color role, surface treatment, and must-have symbols.
+3. Create a composition plan before writing SVG: canvas ratio, focal hierarchy, large shapes, secondary details, negative-space cuts, and finishing effects.
+4. Choose the production mode:
+   - Use standalone JSON when the asset can be built from structured primitives and should stay simple and highly editable.
+   - Use direct SVG when polish requires gradients, filters, masks, clips, organic paths, nested transforms, or dense ornament.
+   - Use imported source SVG only when the user asks for close fidelity to an existing vector source.
+5. Build from large to small: field/background, silhouette, interior cuts, color accents, highlights/shadows, then micro-details.
+6. Render a PNG preview and critique it against the brief. Iterate at least once when the first result is visibly rough, unbalanced, sparse, or off-style.
+7. Deliver the SVG plus source JSON or notes when applicable.
+
+Do not claim a design is close to a reference unless it matches the reference's major structure at a glance. For reference-inspired work, preserve the recognizable design grammar while changing enough geometry and composition to make a new asset.
+
+## Existing Vector Source Workflow
+
+If the user provides or identifies an existing SVG source and asks for close fidelity, do not recreate it from primitive JSON. Preserve or import the source SVG instead, then create previews or derived variants as needed.
+
+Use this path for Wikimedia Commons flags, coats of arms, seals, logos, maps, and other complex vector art where the source file is available. The standalone JSON renderer is for new deterministic assets, not for reproducing hundreds of organic paths from an already-published SVG.
+
+Workflow:
+
+1. Locate the original SVG source, not a PNG/WebP preview, when the user references Wikipedia, Wikimedia Commons, an `.svg.webp` preview, or another rendered derivative.
+2. Save the original SVG under `assets/svg/` with a clear filename.
+3. Preserve attribution and license details in a nearby source or notes file when the source is licensed.
+4. Generate a PNG preview from the imported SVG for visual QA.
+5. Only use standalone JSON for simplified redraws, style variants, or new assets where exact source fidelity is not expected.
 
 ## Standalone SVG Workflow
 
@@ -124,6 +160,19 @@ Render it:
 ```bash
 svg-factory render agent-demo.json --out agent-demo.svg
 ```
+
+## Reference-Driven Heraldry Workflow
+
+When the user provides a heraldic, flag, banner, seal, or emblem reference image, first match the reference structure before adding stylistic interpretation:
+
+If the reference is a rendered preview of an available source SVG, use the Existing Vector Source Workflow instead of hand-drawing it.
+
+1. Match the canvas shape and field color from the reference. Do not add a shield, badge, card, or caption unless the reference has one or the user asks for it.
+2. Identify the signature elements before drawing: number of heads, wing posture, halos/crowns, beaks/tongues, claws, tail ornaments, field color, and whether the figure is free-standing or framed.
+3. Build the silhouette with large filled paths first, then layer cut lines, highlights, eyes, beaks, tongues, claws, and ornaments.
+4. Use mirrored geometry for symmetric heraldic forms, but keep unique IDs for every element.
+5. Prefer named groups like `haloes`, `eagle-silhouette`, `head-details`, `wing-cuts-and-highlights`, and `legs-and-talons` so later edits stay targeted.
+6. Generate a PNG preview and compare it against the reference before finishing. If the structure differs, fix the JSON source and rerender.
 
 ## Sheet Preset Workflow
 
