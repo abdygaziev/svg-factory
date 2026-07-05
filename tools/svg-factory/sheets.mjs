@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
+import { validateSheetName } from "./names.mjs";
 import { sheetsDir } from "./paths.mjs";
 
 export function listSheets({ sheetsDirectory = sheetsDir } = {}) {
@@ -11,7 +12,8 @@ export function listSheets({ sheetsDirectory = sheetsDir } = {}) {
 }
 
 export function loadSheet(name, { sheetsDirectory = sheetsDir } = {}) {
-  const file = join(sheetsDirectory, `${name}.json`);
+  const safeName = validateSheetName(name);
+  const file = join(sheetsDirectory, `${safeName}.json`);
   if (!existsSync(file)) {
     throw new Error(`Unknown sheet "${name}". Run "npm run asset:list".`);
   }

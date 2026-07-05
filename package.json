@@ -9,6 +9,9 @@
   "files": [
     "README.md",
     "assets/README.md",
+    "assets/generated",
+    "assets/previews",
+    "assets/svg",
     "skills/svg-factory",
     "tools/svg-factory"
   ],

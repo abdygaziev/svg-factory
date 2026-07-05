@@ -2,6 +2,7 @@ import { execFileSync as defaultExecFileSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
+import { validateSheetName } from "./names.mjs";
 import { generatedDir, previewsDir, relativePath } from "./paths.mjs";
 
 export function previewSheet(
@@ -13,14 +14,15 @@ export function previewSheet(
     execFileSync = defaultExecFileSync
   } = {}
 ) {
-  const svgPath = join(generatedDirectory, `${name}.svg`);
+  const safeName = validateSheetName(name);
+  const svgPath = join(generatedDirectory, `${safeName}.svg`);
   if (!existsSync(svgPath)) {
     throw new Error(`Missing generated SVG: ${relativePath(svgPath)}. Run generate first.`);
   }
 
   const renderer = selectPreviewRenderer({ commandExists });
   mkdirSync(previewsDirectory, { recursive: true });
-  const outPath = join(previewsDirectory, `${name}.png`);
+  const outPath = join(previewsDirectory, `${safeName}.png`);
   const [command, args] = buildPreviewCommand(renderer, svgPath, outPath);
   execFileSync(command, args, { stdio: "ignore" });
   return outPath;

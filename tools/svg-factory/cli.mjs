@@ -56,13 +56,14 @@ function listSheetsCommand() {
 }
 
 function generateCommand(args) {
-  mkdirSync(generatedDir, { recursive: true });
+  const outputDir = process.env.SVG_FACTORY_GENERATED_DIR || generatedDir;
+  mkdirSync(outputDir, { recursive: true });
   const targets = args[0] ? [args[0]] : listSheets();
 
   for (const name of targets) {
     const sheet = validateSheet(loadSheet(name));
     const svg = renderSheet(sheet);
-    const out = join(generatedDir, `${sheet.name}.svg`);
+    const out = join(outputDir, `${sheet.name}.svg`);
     writeFileSync(out, svg);
     console.log(`generated ${relativePath(out)}`);
   }

@@ -2,6 +2,8 @@ import { descriptorForKind, supportedKinds } from "./document-kinds.mjs";
 
 const documentRequiredFields = ["name", "title", "width", "height", "elements"];
 const paintPattern = /^(none|currentColor|#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|[A-Za-z][A-Za-z0-9-]*)$/;
+const maxGroupDepth = 64;
+const maxElementCount = 5000;
 
 export function validateSvgDocument(document) {
   if (!document || typeof document !== "object" || Array.isArray(document)) {
@@ -25,14 +27,20 @@ export function validateSvgDocument(document) {
   }
 
   const ids = new Set();
+  const state = { elementCount: 0 };
   for (const element of document.elements) {
-    validateElement(element, { ids });
+    validateElement(element, { ids, state, depth: 1 });
   }
 
   return document;
 }
 
-export function validateElement(element, { ids }) {
+export function validateElement(element, { ids, state = { elementCount: 0 }, depth = 1 }) {
+  state.elementCount += 1;
+  if (state.elementCount > maxElementCount) {
+    throw new Error(`SVG document exceeds maximum element count of ${maxElementCount}`);
+  }
+
   if (!element || typeof element !== "object" || Array.isArray(element)) {
     throw new Error("SVG elements must be objects");
   }
@@ -56,16 +64,19 @@ export function validateElement(element, { ids }) {
   }
 
   validateCommonAttributes(element);
-  validateKindSpecificAttributes(element, { ids });
+  validateKindSpecificAttributes(element, { ids, state, depth });
 }
 
-function validateKindSpecificAttributes(element, { ids }) {
+function validateKindSpecificAttributes(element, { ids, state, depth }) {
   if (element.kind === "group") {
+    if (depth > maxGroupDepth) {
+      throw new Error(`SVG document exceeds maximum group depth of ${maxGroupDepth}`);
+    }
     if (!Array.isArray(element.children)) {
       throw new Error(`Element "${element.id}" has invalid children: expected an array`);
     }
     for (const child of element.children) {
-      validateElement(child, { ids });
+      validateElement(child, { ids, state, depth: depth + 1 });
     }
     return;
   }
