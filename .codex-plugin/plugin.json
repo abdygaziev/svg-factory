@@ -1,0 +1,23 @@
+{
+  "name": "svg-factory",
+  "version": "0.1.0",
+  "description": "No-dependency SVG generation CLI with an installable Codex skill.",
+  "author": {
+    "name": "abdygaziev"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "SVG Factory",
+    "shortDescription": "Generate, validate, and preview editable SVG assets.",
+    "longDescription": "Adds an SVG Factory skill for generating polished vector assets, validating SVG definitions, rendering previews, and using bundled sheet presets.",
+    "developerName": "abdygaziev",
+    "category": "Productivity",
+    "capabilities": ["Write"],
+    "defaultPrompt": [
+      "Use SVG Factory to create an editable SVG asset.",
+      "Generate previews for the SVG sheet presets.",
+      "Validate this SVG definition."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

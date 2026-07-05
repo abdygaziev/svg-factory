@@ -61,7 +61,7 @@ Treat generated SVG and PNG files as reproducible outputs; the sheet JSON, rende
 
 Preview prefers Inkscape and falls back to macOS `sips`. Renderer differences between Inkscape, `sips`, and Cavalry are a QA signal to inspect the asset, not a reason to hand-edit generated output.
 
-Validation rejects missing sheet metadata, duplicate item IDs, unsupported accents, unknown renderer types, invalid numeric layout values, unsafe labels, and meter values outside 0..1 before writing output.
+Validation rejects missing sheet metadata, duplicate item IDs, unsupported accents, unknown renderer types, invalid numeric layout values, unsafe sheet names, and meter values outside 0..1 before writing output. Labels with XML-sensitive characters are escaped when rendered.
 
 ## Cavalry Workflow
 

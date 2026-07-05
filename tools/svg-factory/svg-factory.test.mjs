@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -55,12 +55,84 @@ test("unknown sheets point users toward listing available sheets", () => {
   );
 });
 
-test("CLI generate writes the pilot sheet with structural markers", () => {
-  execFileSync("node", ["tools/svg-factory/cli.mjs", "generate", "byzantium-pilot"], {
-    cwd: root,
-    stdio: "pipe"
-  });
+test("CLI generate writes the pilot sheet with structural markers without touching tracked outputs", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "svg-factory-generate-"));
+  const before = readFileSync(join(generatedDir, "byzantium-pilot.svg"), "utf8");
+  const outputDir = join(tempDir, "generated");
+  try {
+    execFileSync("node", ["tools/svg-factory/cli.mjs", "generate", "byzantium-pilot"], {
+      cwd: root,
+      env: { ...process.env, SVG_FACTORY_GENERATED_DIR: outputDir },
+      stdio: "pipe"
+    });
 
+    const svg = readFileSync(join(outputDir, "byzantium-pilot.svg"), "utf8");
+    assert.match(svg, /<title>White Board History - Byzantium Pilot Assets<\/title>/);
+    assert.match(svg, /viewBox="0 0 1600 900"/);
+    assert.match(svg, /<g id="constantinople-wall-piece"/);
+    assert.equal(readFileSync(join(generatedDir, "byzantium-pilot.svg"), "utf8"), before);
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("checked-in generated pilot sheet stays in sync with the renderer", () => {
+  const expected = renderSheet(loadSheet("byzantium-pilot"));
+  const actual = readFileSync(join(generatedDir, "byzantium-pilot.svg"), "utf8");
+
+  assert.equal(actual, expected);
+});
+
+test("CLI generate rejects unsafe sheet names before filesystem access", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "svg-factory-bad-generate-"));
+  try {
+    assert.throws(
+      () =>
+        execFileSync("node", ["tools/svg-factory/cli.mjs", "generate", "../outside"], {
+          cwd: root,
+          env: { ...process.env, SVG_FACTORY_GENERATED_DIR: tempDir },
+          stdio: "pipe"
+        }),
+      /Invalid sheet name/
+    );
+    assert.equal(existsSync(join(tempDir, "outside.svg")), false);
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("sheet definitions cannot write generated SVGs outside the output directory", () => {
+  const sheet = makeSheet({ id: "safe-item" });
+  sheet.name = "../outside";
+
+  assert.throws(() => validateSheet(sheet), /Sheet has invalid name/);
+});
+
+test("preview rejects unsafe sheet names before reading or writing files", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "svg-factory-bad-preview-"));
+  try {
+    const generated = join(tempDir, "generated");
+    const previews = join(tempDir, "previews");
+    mkdirSync(join(tempDir, "outside"), { recursive: true });
+    writeFileSync(join(tempDir, "outside", "demo.svg"), "<svg></svg>");
+
+    assert.throws(
+      () =>
+        previewSheet("../outside/demo", {
+          generatedDirectory: generated,
+          previewsDirectory: previews,
+          commandExists: (command) => command === "sips",
+          execFileSync: (_command, args) => writeFileSync(args.at(-1), "png")
+        }),
+      /Invalid sheet name/
+    );
+    assert.equal(existsSync(join(tempDir, "outside", "demo.png")), false);
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("checked-in generated pilot sheet has structural markers", () => {
   const svg = readFileSync(join(generatedDir, "byzantium-pilot.svg"), "utf8");
   assert.match(svg, /<title>White Board History - Byzantium Pilot Assets<\/title>/);
   assert.match(svg, /viewBox="0 0 1600 900"/);
@@ -203,6 +275,27 @@ test("generic SVG definitions validate creator-facing errors before rendering", 
         elements: [{ id: "bad-width", kind: "rect", x: 0, y: 0, width: -1, height: 10 }]
       }),
     /Element "bad-width" has invalid width: expected a non-negative number/
+  );
+  assert.throws(
+    () => validateSvgDocument(makeDeepDocument(65)),
+    /SVG document exceeds maximum group depth/
+  );
+  assert.throws(
+    () =>
+      validateSvgDocument({
+        name: "too-many",
+        title: "Too Many",
+        width: 320,
+        height: 180,
+        elements: Array.from({ length: 5001 }, (_value, index) => ({
+          id: `circle-${index}`,
+          kind: "circle",
+          cx: 20,
+          cy: 20,
+          r: 10
+        }))
+      }),
+    /SVG document exceeds maximum element count/
   );
 });
 
@@ -496,6 +589,27 @@ test("docs list package commands and style accents from the executable contract"
   }
 });
 
+test("package dry-run includes the documented asset directories", () => {
+  const [pack] = JSON.parse(
+    execFileSync("npm", ["pack", "--dry-run", "--json"], {
+      cwd: root,
+      stdio: "pipe"
+    })
+  );
+  const files = new Set(pack.files.map((file) => file.path));
+
+  for (const path of [
+    "assets/svg/faction-tokens.svg",
+    "assets/svg/map-annotations.svg",
+    "assets/svg/historical-objects.svg",
+    "assets/svg/byzantium-pilot.svg",
+    "assets/generated/byzantium-pilot.svg",
+    "assets/previews/byzantium-pilot.png"
+  ]) {
+    assert.ok(files.has(path), `package missing ${path}`);
+  }
+});
+
 function makeSheet(item = {}) {
   return {
     name: "test-sheet",
@@ -552,6 +666,24 @@ function makeDocument() {
         ]
       }
     ]
+  };
+}
+
+function makeDeepDocument(depth) {
+  let element = { id: "leaf", kind: "circle", cx: 20, cy: 20, r: 10 };
+  for (let index = 0; index < depth; index += 1) {
+    element = {
+      id: `group-${index}`,
+      kind: "group",
+      children: [element]
+    };
+  }
+  return {
+    name: "deep-doc",
+    title: "Deep Doc",
+    width: 320,
+    height: 180,
+    elements: [element]
   };
 }
 

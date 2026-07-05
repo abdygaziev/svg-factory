@@ -1,4 +1,5 @@
 import { rendererTypes } from "./renderers.mjs";
+import { validateAssetName } from "./names.mjs";
 import { accentNames, styleContract } from "./style.mjs";
 
 const sheetRequiredFields = ["name", "title", "width", "height", "items"];
@@ -16,6 +17,7 @@ export function validateSheet(sheet, { contract = styleContract, availableRender
   }
 
   validateString(sheet.name, "Sheet", "name");
+  validateAssetName(sheet.name, { owner: "Sheet" });
   validateString(sheet.title, "Sheet", "title");
   validatePositiveNumber(sheet.width, "Sheet", "width");
   validatePositiveNumber(sheet.height, "Sheet", "height");
